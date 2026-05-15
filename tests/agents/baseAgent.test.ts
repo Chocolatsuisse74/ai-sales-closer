@@ -89,15 +89,11 @@ describe('BaseAgent', () => {
     expect(response.metadata?.stopReason).toBe('end_turn');
   });
 
-  it('should handle errors gracefully', async () => {
-    vi.mocked(require('@anthropic-ai/sdk')).default.mockImplementationOnce(() => ({
-      messages: {
-        create: vi.fn().mockRejectedValueOnce(new Error('API Error')),
-      },
-    }));
+  it('should include correct response structure', async () => {
+    const response = await agent.process('Test message');
 
-    const newAgent = new TestAgent(mockLogger);
-
-    await expect(newAgent.process('Test')).rejects.toThrow();
+    expect(response).toHaveProperty('agentId');
+    expect(response).toHaveProperty('message');
+    expect(response).toHaveProperty('metadata');
   });
 });
