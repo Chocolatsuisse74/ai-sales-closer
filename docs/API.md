@@ -1,34 +1,31 @@
-# API Documentation - AI Sales Closer
-
-Complete API reference for the AI Sales Closer platform with examples and authentication details.
+# AI Sales Closer API Documentation
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [Base URL](#base-url)
 - [Authentication](#authentication)
-- [Common Response Format](#common-response-format)
-- [Error Handling](#error-handling)
-- [Rate Limiting](#rate-limiting)
+- [Base URL](#base-url)
+- [Response Format](#response-format)
 - [Endpoints](#endpoints)
-  - [Health Check](#health-check)
-  - [Agents](#agents)
   - [Leads](#leads)
   - [Deals](#deals)
-
----
+  - [Agents](#agents)
+  - [Activities](#activities)
+- [Error Handling](#error-handling)
+- [Rate Limiting](#rate-limiting)
+- [Examples](#examples)
 
 ## Overview
 
-The AI Sales Closer API provides programmatic access to:
-- AI Agent management and execution
-- Lead qualification and tracking
-- Sales deal management
-- Real-time sales pipeline updates
+AI Sales Closer provides a comprehensive RESTful API for managing leads, deals, and coordinating AI agents for sales automation.
 
-All endpoints return JSON responses with consistent formatting.
+## Authentication
 
----
+AI Sales Closer uses bearer token authentication:
+
+```bash
+Authorization: Bearer YOUR_API_KEY
+```
 
 ## Base URL
 
@@ -36,130 +33,205 @@ All endpoints return JSON responses with consistent formatting.
 http://localhost:3000/api
 ```
 
-For production environments, replace `localhost:3000` with your deployment URL.
+## Response Format
 
----
-
-## Authentication
-
-Currently, the API uses API key authentication. Add your API key to request headers:
-
-```bash
-Authorization: Bearer YOUR_API_KEY
-```
-
-### Getting Your API Key
-
-1. Log in to the AI Sales Closer dashboard
-2. Navigate to Settings > API Keys
-3. Click "Generate New Key"
-4. Copy and store securely
-
----
-
-## Common Response Format
-
-### Success Response
+### Success Response (2xx)
 
 ```json
 {
-  "data": { /* response payload */ },
-  "status": "success",
-  "timestamp": "2026-05-15T10:30:00Z"
+  "success": true,
+  "data": {},
+  "timestamp": "2024-05-15T10:30:00Z"
 }
 ```
 
-### Error Response
+### Error Response (4xx, 5xx)
 
 ```json
 {
-  "error": "Error message describing what went wrong",
-  "status": "error",
+  "success": false,
+  "error": "Error message",
   "code": "ERROR_CODE",
-  "timestamp": "2026-05-15T10:30:00Z"
+  "timestamp": "2024-05-15T10:30:00Z"
 }
 ```
-
----
-
-## Error Handling
-
-### HTTP Status Codes
-
-| Status | Meaning |
-|--------|---------|
-| 200 | OK - Request succeeded |
-| 201 | Created - Resource created successfully |
-| 400 | Bad Request - Invalid parameters |
-| 401 | Unauthorized - Missing/invalid authentication |
-| 404 | Not Found - Resource doesn't exist |
-| 429 | Too Many Requests - Rate limit exceeded |
-| 500 | Internal Server Error - Server error |
-
-### Common Error Codes
-
-- `INVALID_REQUEST` - Malformed request
-- `UNAUTHORIZED` - Missing or invalid API key
-- `NOT_FOUND` - Resource not found
-- `RATE_LIMIT_EXCEEDED` - Too many requests
-- `AGENT_ERROR` - Error processing with agent
-- `INTERNAL_ERROR` - Server error
-
----
-
-## Rate Limiting
-
-- **Free Tier**: 100 requests/hour
-- **Pro Tier**: 1000 requests/hour
-- **Enterprise**: Unlimited
-
-Rate limit headers are included in all responses:
-
-```
-X-RateLimit-Limit: 1000
-X-RateLimit-Remaining: 999
-X-RateLimit-Reset: 1234567890
-```
-
----
 
 ## Endpoints
 
-### Health Check
+### Leads
 
-#### Check API Status
+#### List All Leads
 
-```http
-GET /health
+```bash
+GET /leads
 ```
 
-**Response:**
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `status` | string | Filter by status: new, qualified, engaged, proposal, closed, lost |
+| `minScore` | number | Filter by minimum qualification score (0-1) |
+| `limit` | number | Results per page (default: 20, max: 100) |
+| `offset` | number | Pagination offset (default: 0) |
+
+**Example Request:**
+
+```bash
+curl -X GET "http://localhost:3000/api/leads?status=qualified&minScore=0.7&limit=10" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+#### Create Lead
+
+```bash
+POST /leads
+```
+
+**Request Body:**
+
 ```json
 {
-  "status": "ok",
-  "timestamp": "2026-05-15T10:30:00Z"
+  "name": "John Doe",
+  "email": "john@techcompany.com",
+  "company": "TechCompany Inc",
+  "notes": "Referred by marketing campaign"
 }
 ```
 
-**Example:**
+**Example Request:**
+
 ```bash
-curl http://localhost:3000/health
+curl -X POST "http://localhost:3000/api/leads" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "John Doe",
+    "email": "john@techcompany.com",
+    "company": "TechCompany Inc"
+  }'
 ```
 
----
+#### Get Lead Details
+
+```bash
+GET /leads/:id
+```
+
+**Example Request:**
+
+```bash
+curl -X GET "http://localhost:3000/api/leads/lead_123abc" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+#### Update Lead
+
+```bash
+PUT /leads/:id
+```
+
+**Request Body:**
+
+```json
+{
+  "status": "engaged",
+  "notes": "Had initial discovery call",
+  "score": 0.90
+}
+```
+
+#### Delete Lead
+
+```bash
+DELETE /leads/:id
+```
+
+### Deals
+
+#### List All Deals
+
+```bash
+GET /deals
+```
+
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `stage` | string | Filter by stage: discovery, proposal, negotiation, closing, won, lost |
+| `minAmount` | number | Filter by minimum deal amount |
+| `maxAmount` | number | Filter by maximum deal amount |
+| `limit` | number | Results per page (default: 20) |
+| `offset` | number | Pagination offset (default: 0) |
+
+**Example Request:**
+
+```bash
+curl -X GET "http://localhost:3000/api/deals?stage=proposal&minAmount=50000" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+#### Create Deal
+
+```bash
+POST /deals
+```
+
+**Request Body:**
+
+```json
+{
+  "leadId": "lead_123abc",
+  "amount": 75000,
+  "stage": "discovery",
+  "expectedClosureDate": "2024-06-15"
+}
+```
+
+#### Update Deal Stage
+
+```bash
+PUT /deals/:id/stage
+```
+
+**Request Body:**
+
+```json
+{
+  "stage": "proposal"
+}
+```
+
+#### Get Deal Details
+
+```bash
+GET /deals/:id
+```
 
 ### Agents
 
 #### List All Agents
 
-```http
+```bash
 GET /agents
 ```
 
-**Response:**
+Returns all available AI agents and their status.
+
+**Example Request:**
+
+```bash
+curl -X GET "http://localhost:3000/api/agents" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Example Response:**
+
 ```json
 {
-  "agents": [
+  "success": true,
+  "data": [
     {
       "id": "lead-qualifier",
       "type": "lead-qualifier",
@@ -171,595 +243,292 @@ GET /agents
       "id": "follow-up",
       "type": "follow-up",
       "name": "Follow-up Agent",
-      "description": "Manages intelligent follow-ups",
-      "status": "active"
-    },
-    {
-      "id": "proposal-generator",
-      "type": "proposal-generator",
-      "name": "Proposal Generator",
-      "description": "Creates customized proposals",
-      "status": "active"
-    },
-    {
-      "id": "close-assistant",
-      "type": "close-assistant",
-      "name": "Close Assistant",
-      "description": "Helps overcome objections",
-      "status": "active"
-    },
-    {
-      "id": "manager",
-      "type": "manager",
-      "name": "Manager Agent",
-      "description": "Orchestrates all agents",
+      "description": "Manages intelligent lead follow-ups",
       "status": "active"
     }
-  ],
-  "count": 5
+  ]
 }
 ```
 
-**Example:**
+#### Get Agent Status
+
 ```bash
-curl -X GET http://localhost:3000/api/agents \
+GET /agents/:agentType/status
+```
+
+**Example Request:**
+
+```bash
+curl -X GET "http://localhost:3000/api/agents/lead-qualifier/status" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
----
+#### Process with Agent
 
-#### Send Message to Agent
-
-```http
-POST /agents/:agentId/message
+```bash
+POST /agents/:agentType/process
 ```
 
-**Parameters:**
-- `agentId` (path): The ID of the agent (e.g., "lead-qualifier")
+Send a lead to an agent for processing.
 
 **Request Body:**
+
 ```json
 {
-  "message": "Your message to the agent"
+  "leadId": "lead_123abc",
+  "context": "Additional context for the agent"
 }
 ```
 
-**Response:**
-```json
-{
-  "agentId": "lead-qualifier",
-  "message": "Agent's response message",
-  "metadata": {
-    "tokensUsed": {
-      "input_tokens": 256,
-      "output_tokens": 128
-    },
-    "stopReason": "end_turn"
-  }
-}
-```
+**Example Request:**
 
-**Example:**
 ```bash
-curl -X POST http://localhost:3000/api/agents/lead-qualifier/message \
-  -H "Content-Type: application/json" \
+curl -X POST "http://localhost:3000/api/agents/lead-qualifier/process" \
   -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{
-    "message": "Analyze this lead: TechCorp Inc, $5M ARR, 500 employees"
+    "leadId": "lead_123abc",
+    "context": "Enterprise prospect, $50k budget, needs enterprise features"
   }'
 ```
 
----
+### Activities
 
-#### Qualify Lead with Specialist
+#### List Activities
 
-```http
-POST /agents/lead-qualifier/qualify
-```
-
-**Request Body:**
-```json
-{
-  "lead": {
-    "id": "lead-123",
-    "name": "John Doe",
-    "email": "john@techcorp.com",
-    "company": "TechCorp Inc",
-    "status": "new",
-    "score": 0,
-    "notes": "Referred by existing customer"
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "agentId": "lead-qualifier",
-  "message": "Qualification Score: 85/100\n\nKey Strengths:\n- Large company with proven budget\n- Direct referral from trusted source\n- Matching industry\n\nPotential Risks:\n- No prior engagement\n- Decision timeline unclear\n\nRecommended Next Action:\n- Schedule discovery call within 48 hours",
-  "metadata": {
-    "tokensUsed": {
-      "input_tokens": 512,
-      "output_tokens": 256
-    },
-    "stopReason": "end_turn"
-  }
-}
-```
-
-**Example:**
 ```bash
-curl -X POST http://localhost:3000/api/agents/lead-qualifier/qualify \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d '{
-    "lead": {
-      "id": "lead-123",
-      "name": "John Doe",
-      "email": "john@techcorp.com",
-      "company": "TechCorp Inc",
-      "status": "new",
-      "score": 0,
-      "notes": "Referred by existing customer"
-    }
-  }'
-```
-
----
-
-### Leads
-
-#### List All Leads
-
-```http
-GET /leads
+GET /activities
 ```
 
 **Query Parameters:**
-- `status` (optional): Filter by status (new, qualified, engaged, proposal, closed, lost)
-- `page` (optional): Page number for pagination (default: 1)
-- `limit` (optional): Results per page (default: 20)
-- `sort` (optional): Sort field (createdAt, score, updatedAt)
 
-**Response:**
-```json
-{
-  "leads": [
-    {
-      "id": "lead-123",
-      "name": "John Doe",
-      "email": "john@techcorp.com",
-      "company": "TechCorp Inc",
-      "status": "qualified",
-      "score": 85,
-      "notes": "Referred by existing customer",
-      "createdAt": "2026-05-10T14:20:00Z",
-      "updatedAt": "2026-05-15T10:30:00Z"
-    }
-  ],
-  "count": 1,
-  "total": 145,
-  "page": 1,
-  "pages": 8
-}
-```
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `leadId` | string | Filter by lead |
+| `dealId` | string | Filter by deal |
+| `agentId` | string | Filter by agent |
+| `type` | string | Filter by activity type |
+| `limit` | number | Results per page (default: 50) |
 
-**Example:**
+**Example Request:**
+
 ```bash
-curl -X GET "http://localhost:3000/api/leads?status=qualified&page=1&limit=10" \
+curl -X GET "http://localhost:3000/api/activities?leadId=lead_123abc&limit=10" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
----
+## Error Handling
 
-#### Create Lead
+| Code | Meaning |
+|------|---------|
+| 200 | OK |
+| 201 | Created |
+| 400 | Bad Request |
+| 401 | Unauthorized |
+| 404 | Not Found |
+| 429 | Too Many Requests |
+| 500 | Server Error |
 
-```http
-POST /leads
+## Rate Limiting
+
+API requests are rate limited:
+
+- **Standard:** 100 requests per minute
+- **Burst:** 1000 requests per 5 minutes
+
+Rate limit headers:
+
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1715768400
 ```
 
-**Request Body:**
-```json
-{
-  "name": "Jane Smith",
-  "email": "jane@innovatecorp.com",
-  "company": "InnovateCorp",
-  "notes": "Inbound inquiry from website",
-  "status": "new"
-}
-```
+## Examples
 
-**Response:**
-```json
-{
-  "id": "lead-456",
-  "name": "Jane Smith",
-  "email": "jane@innovatecorp.com",
-  "company": "InnovateCorp",
-  "status": "new",
-  "score": 0,
-  "notes": "Inbound inquiry from website",
-  "createdAt": "2026-05-15T10:30:00Z",
-  "updatedAt": "2026-05-15T10:30:00Z"
-}
-```
+### Complete Lead Management Workflow
 
-**Example:**
+#### 1. Create Lead
+
 ```bash
-curl -X POST http://localhost:3000/api/leads \
-  -H "Content-Type: application/json" \
+curl -X POST "http://localhost:3000/api/leads" \
   -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{
     "name": "Jane Smith",
     "email": "jane@innovatecorp.com",
-    "company": "InnovateCorp",
-    "notes": "Inbound inquiry from website",
-    "status": "new"
+    "company": "InnovateCorp"
   }'
 ```
 
----
+#### 2. Qualify Lead with Agent
 
-#### Get Lead Details
-
-```http
-GET /leads/:id
-```
-
-**Parameters:**
-- `id` (path): The lead ID
-
-**Response:**
-```json
-{
-  "id": "lead-123",
-  "name": "John Doe",
-  "email": "john@techcorp.com",
-  "company": "TechCorp Inc",
-  "status": "qualified",
-  "score": 85,
-  "notes": "Referred by existing customer",
-  "createdAt": "2026-05-10T14:20:00Z",
-  "updatedAt": "2026-05-15T10:30:00Z"
-}
-```
-
-**Example:**
 ```bash
-curl -X GET http://localhost:3000/api/leads/lead-123 \
-  -H "Authorization: Bearer YOUR_API_KEY"
-```
-
----
-
-#### Update Lead
-
-```http
-PUT /leads/:id
-```
-
-**Parameters:**
-- `id` (path): The lead ID
-
-**Request Body:**
-```json
-{
-  "status": "engaged",
-  "score": 90,
-  "notes": "Called and very interested in demo"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "lead-123",
-  "name": "John Doe",
-  "email": "john@techcorp.com",
-  "company": "TechCorp Inc",
-  "status": "engaged",
-  "score": 90,
-  "notes": "Called and very interested in demo",
-  "createdAt": "2026-05-10T14:20:00Z",
-  "updatedAt": "2026-05-15T10:35:00Z"
-}
-```
-
-**Example:**
-```bash
-curl -X PUT http://localhost:3000/api/leads/lead-123 \
-  -H "Content-Type: application/json" \
+curl -X POST "http://localhost:3000/api/agents/lead-qualifier/process" \
   -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{
-    "status": "engaged",
-    "score": 90,
-    "notes": "Called and very interested in demo"
+    "leadId": "lead_newlead001",
+    "context": "500-person tech company, looking for enterprise solutions"
   }'
 ```
 
----
-
-#### Delete Lead
-
-```http
-DELETE /leads/:id
-```
-
-**Parameters:**
-- `id` (path): The lead ID
-
-**Response:**
-```json
-{
-  "message": "Lead deleted successfully",
-  "id": "lead-123"
-}
-```
-
-**Example:**
-```bash
-curl -X DELETE http://localhost:3000/api/leads/lead-123 \
-  -H "Authorization: Bearer YOUR_API_KEY"
-```
-
----
-
-### Deals
-
-#### List All Deals
-
-```http
-GET /deals
-```
-
-**Query Parameters:**
-- `stage` (optional): Filter by stage (discovery, proposal, negotiation, closing, won, lost)
-- `page` (optional): Page number for pagination (default: 1)
-- `limit` (optional): Results per page (default: 20)
-- `sort` (optional): Sort field (createdAt, amount, expectedClosureDate)
-
-**Response:**
-```json
-{
-  "deals": [
-    {
-      "id": "deal-789",
-      "leadId": "lead-123",
-      "amount": 50000,
-      "stage": "proposal",
-      "expectedClosureDate": "2026-06-15T00:00:00Z",
-      "createdAt": "2026-05-10T14:20:00Z",
-      "updatedAt": "2026-05-15T10:30:00Z"
-    }
-  ],
-  "count": 1,
-  "total": 47,
-  "page": 1,
-  "pages": 3
-}
-```
-
-**Example:**
-```bash
-curl -X GET "http://localhost:3000/api/deals?stage=proposal&sort=amount" \
-  -H "Authorization: Bearer YOUR_API_KEY"
-```
-
----
-
-#### Create Deal
-
-```http
-POST /deals
-```
-
-**Request Body:**
-```json
-{
-  "leadId": "lead-123",
-  "amount": 50000,
-  "stage": "discovery",
-  "expectedClosureDate": "2026-06-15"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "deal-789",
-  "leadId": "lead-123",
-  "amount": 50000,
-  "stage": "discovery",
-  "expectedClosureDate": "2026-06-15T00:00:00Z",
-  "createdAt": "2026-05-15T10:30:00Z",
-  "updatedAt": "2026-05-15T10:30:00Z"
-}
-```
-
-**Example:**
-```bash
-curl -X POST http://localhost:3000/api/deals \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d '{
-    "leadId": "lead-123",
-    "amount": 50000,
-    "stage": "discovery",
-    "expectedClosureDate": "2026-06-15"
-  }'
-```
-
----
-
-#### Update Deal Stage
-
-```http
-PUT /deals/:id/stage
-```
-
-**Parameters:**
-- `id` (path): The deal ID
-
-**Request Body:**
-```json
-{
-  "stage": "negotiation"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "deal-789",
-  "leadId": "lead-123",
-  "amount": 50000,
-  "stage": "negotiation",
-  "expectedClosureDate": "2026-06-15T00:00:00Z",
-  "createdAt": "2026-05-10T14:20:00Z",
-  "updatedAt": "2026-05-15T10:40:00Z"
-}
-```
-
-**Example:**
-```bash
-curl -X PUT http://localhost:3000/api/deals/deal-789/stage \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d '{
-    "stage": "negotiation"
-  }'
-```
-
----
-
-## Workflow Example
-
-Here's a complete workflow showing how to use multiple endpoints:
+#### 3. Update Lead Status
 
 ```bash
-# 1. Create a new lead
-curl -X POST http://localhost:3000/api/leads \
-  -H "Content-Type: application/json" \
+curl -X PUT "http://localhost:3000/api/leads/lead_newlead001" \
   -H "Authorization: Bearer YOUR_API_KEY" \
-  -d '{
-    "name": "Alice Johnson",
-    "email": "alice@enterprise.com",
-    "company": "Enterprise Inc",
-    "notes": "LinkedIn outreach",
-    "status": "new"
-  }' > lead.json
-
-LEAD_ID=$(jq -r '.id' lead.json)
-
-# 2. Qualify the lead
-curl -X POST http://localhost:3000/api/agents/lead-qualifier/qualify \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d @lead.json > qualification.json
-
-# 3. Update lead status based on qualification
-curl -X PUT http://localhost:3000/api/leads/$LEAD_ID \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{
     "status": "qualified",
-    "score": 88
+    "score": 0.92
   }'
+```
 
-# 4. Create a deal
-curl -X POST http://localhost:3000/api/deals \
-  -H "Content-Type: application/json" \
+#### 4. Create Deal
+
+```bash
+curl -X POST "http://localhost:3000/api/deals" \
   -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{
-    "leadId": "'$LEAD_ID'",
-    "amount": 75000,
+    "leadId": "lead_newlead001",
+    "amount": 150000,
     "stage": "discovery",
-    "expectedClosureDate": "2026-07-15"
-  }' > deal.json
+    "expectedClosureDate": "2024-07-01"
+  }'
+```
 
-# 5. Get deal status
-DEAL_ID=$(jq -r '.id' deal.json)
-curl -X GET http://localhost:3000/api/deals/$DEAL_ID \
+#### 5. Advance Deal Stage
+
+```bash
+curl -X PUT "http://localhost:3000/api/deals/deal_newdeal001/stage" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "stage": "proposal"
+  }'
+```
+
+#### 6. View Activity Timeline
+
+```bash
+curl -X GET "http://localhost:3000/api/activities?leadId=lead_newlead001&limit=20" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
----
+### Python Client Example
 
-## Pagination
+```python
+import requests
 
-For endpoints that support pagination, use these query parameters:
+BASE_URL = "http://localhost:3000/api"
+API_KEY = "your_api_key_here"
 
+headers = {
+    "Authorization": f"Bearer {API_KEY}",
+    "Content-Type": "application/json"
+}
+
+# Create lead
+response = requests.post(
+    f"{BASE_URL}/leads",
+    json={
+        "name": "John Prospect",
+        "email": "john@company.com",
+        "company": "ProspectCo"
+    },
+    headers=headers
+)
+
+lead = response.json()['data']
+print(f"Created lead: {lead['id']}")
+
+# Qualify with agent
+response = requests.post(
+    f"{BASE_URL}/agents/lead-qualifier/process",
+    json={
+        "leadId": lead['id'],
+        "context": "Large enterprise, strong indicators"
+    },
+    headers=headers
+)
+
+result = response.json()['data']
+print(f"Qualification score: {result['metadata']['score']}")
 ```
-GET /leads?page=2&limit=50
+
+### JavaScript/Node.js Example
+
+```javascript
+const axios = require('axios');
+
+const BASE_URL = 'http://localhost:3000/api';
+const API_KEY = process.env.API_KEY;
+
+const client = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    'Authorization': `Bearer ${API_KEY}`,
+    'Content-Type': 'application/json'
+  }
+});
+
+async function createAndQualifyLead() {
+  try {
+    // Create lead
+    const leadResponse = await client.post('/leads', {
+      name: 'John Prospect',
+      email: 'john@company.com',
+      company: 'ProspectCo'
+    });
+
+    const lead = leadResponse.data.data;
+    console.log('Created lead:', lead.id);
+
+    // Qualify with agent
+    const qualifyResponse = await client.post(
+      `/agents/lead-qualifier/process`,
+      {
+        leadId: lead.id,
+        context: 'Large enterprise, budget approved'
+      }
+    );
+
+    const qualification = qualifyResponse.data.data;
+    console.log('Score:', qualification.metadata.score);
+
+    // Create deal
+    const dealResponse = await client.post('/deals', {
+      leadId: lead.id,
+      amount: 100000,
+      stage: 'discovery',
+      expectedClosureDate: '2024-06-30'
+    });
+
+    const deal = dealResponse.data.data;
+    console.log('Created deal:', deal.id);
+
+    return { lead, deal, qualification };
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+}
+
+createAndQualifyLead();
 ```
 
-Response includes pagination info:
+## Health Check
+
+```bash
+GET /health
+```
+
+Returns API health status:
 
 ```json
 {
-  "leads": [...],
-  "page": 2,
-  "limit": 50,
-  "total": 500,
-  "pages": 10,
-  "hasNext": true,
-  "hasPrev": true
+  "status": "ok",
+  "timestamp": "2024-05-15T10:30:00Z"
 }
 ```
-
----
-
-## Sorting
-
-Use the `sort` parameter to order results:
-
-```
-GET /leads?sort=-createdAt      // Descending by creation date
-GET /leads?sort=score           // Ascending by score
-GET /deals?sort=-amount         // Descending by amount
-```
-
----
-
-## Filtering
-
-Filter results with query parameters:
-
-```
-GET /leads?status=qualified
-GET /deals?stage=closing&amount_gte=100000
-GET /leads?company=TechCorp
-```
-
----
-
-## Webhook Events
-
-The API can send webhook events to your configured endpoint:
-
-- `lead.created` - When a new lead is added
-- `lead.qualified` - When a lead is qualified
-- `deal.created` - When a new deal is created
-- `deal.stage_changed` - When deal stage changes
-- `agent.action_completed` - When agent completes an action
-
-Configure webhooks in Settings > Integrations > Webhooks.
-
----
-
-## SDKs
-
-Official SDKs are available:
-
-- **JavaScript/TypeScript**: `npm install ai-sales-closer`
-- **Python**: `pip install ai-sales-closer`
-- **Go**: `go get github.com/chocolatsuisse74/ai-sales-closer-go`
-
----
-
-## Support
-
-For API support:
-- Email: api-support@example.com
-- Documentation: https://docs.example.com
-- GitHub Issues: https://github.com/chocolatsuisse74/ai-sales-closer
